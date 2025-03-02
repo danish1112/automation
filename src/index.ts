@@ -10,7 +10,7 @@ fastify.register(publicAppsController, { prefix: "/api" });
 async function start() {
   const port = parseInt(process.env.PORT || "3000", 10);
   try {
-    await connectProducer(); // Connect Kafka producer
+    await connectProducer(); // Connect Kafka producer and wait for topics
     await fastify.listen({ port });
     console.log(`Server running on http://localhost:${port}`);
   } catch (err) {
@@ -20,7 +20,7 @@ async function start() {
 }
 
 process.on("SIGINT", async () => {
-  await disconnectProducer(); // Cleanup Kafka producer
+  await disconnectProducer();
   await fastify.close();
   process.exit(0);
 });

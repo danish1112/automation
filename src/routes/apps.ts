@@ -39,7 +39,13 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       timestamp: new Date().toISOString(),
     };
 
-    await sendToKafka("identify", message);
+    try {
+      await sendToKafka("identify", message);
+    } catch (err) {
+      fastify.log.error(err);
+      return reply.status(500).send({ message: "Failed to publish event to Kafka" });
+    }
+
     return reply.status(204).send();
   });
 
@@ -71,7 +77,13 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       timestamp: new Date().toISOString(),
     };
 
-    await sendToKafka("track", message);
+    try {
+      await sendToKafka("track", message);
+    } catch (err) {
+      fastify.log.error(err);
+      return reply.status(500).send({ message: "Failed to publish event to Kafka" });
+    }
+
     return reply.status(204).send();
   });
 }
