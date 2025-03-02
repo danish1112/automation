@@ -7,10 +7,11 @@ import {
   BaseMessageResponse,
 } from "../lib/types";
 import { validateWriteKey } from "../lib/pg";
+import { sendToKafka } from "../lib/kafka";
+import { randomUUID } from "crypto";
 
 export default async function publicAppsController(fastify: FastifyInstance) {
   fastify.post<{ Body: IdentifyDataType }>("/identify", async (request, reply) => {
-    // Validate request body with Zod
     let body: IdentifyDataType;
     try {
       body = IdentifyData.parse(request.body);
@@ -18,26 +19,31 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       return reply.status(400).send({ message: "Invalid input" });
     }
 
-    const workspaceId = await validateWriteKey(request.headers.authorization as string);
-    if (!workspaceId) {
-      return reply.status(401).send({ message: "Invalid write key." });
+    const authHeader = request.headers.authorization as string | undefined;
+    if (!authHeader) {
+      return reply.status(401).send({ message: "Authorization header missing" });
     }
 
-    // For now, just log and return success
-    fastify.log.info(
-      {
-        workspaceId,
-        userId: body.userId,
-        traits: body.traits,
-      },
-      "Identify event received"
-    );
+    const workspaceId = await validateWriteKey(authHeader);
+    if (!workspaceId) {
+      return reply.status(401).send({ message: "Invalid write key" });
+    }
 
+    const message = {
+      id: randomUUID(),
+      workspace_id: workspaceId,
+      user_id: body.userId,
+      type: "identify",
+      event: null,
+      properties: body.traits || {},
+      timestamp: new Date().toISOString(),
+    };
+
+    await sendToKafka("identify", message);
     return reply.status(204).send();
   });
 
   fastify.post<{ Body: TrackDataType }>("/track", async (request, reply) => {
-    // Validate request body with Zod
     let body: TrackDataType;
     try {
       body = TrackData.parse(request.body);
@@ -45,22 +51,27 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       return reply.status(400).send({ message: "Invalid input" });
     }
 
-    const workspaceId = await validateWriteKey(request.headers.authorization as string);
-    if (!workspaceId) {
-      return reply.status(401).send({ message: "Invalid write key." });
+    const authHeader = request.headers.authorization as string | undefined;
+    if (!authHeader) {
+      return reply.status(401).send({ message: "Authorization header missing" });
     }
 
-    // For now, just log and return success
-    fastify.log.info(
-      {
-        workspaceId,
-        userId: body.userId,
-        event: body.event,
-        properties: body.properties,
-      },
-      "Track event received"
-    );
+    const workspaceId = await validateWriteKey(authHeader);
+    if (!workspaceId) {
+      return reply.status(401).send({ message: "Invalid write key" });
+    }
 
+    const message = {
+      id: randomUUID(),
+      workspace_id: workspaceId,
+      user_id: body.userId,
+      type: "track",
+      event: body.event,
+      properties: body.properties || {},
+      timestamp: new Date().toISOString(),
+    };
+
+    await sendToKafka("track", message);
     return reply.status(204).send();
   });
 }

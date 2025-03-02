@@ -16,6 +16,7 @@
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.40.0",
     "fastify": "^5.2.1",
+    "kafkajs": "^2.2.4",
     "pg": "^8.13.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2",
