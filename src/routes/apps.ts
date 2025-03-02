@@ -6,15 +6,7 @@ import {
   TrackDataType,
   BaseMessageResponse,
 } from "../lib/types";
-
-// Mock validation until PostgreSQL is added
-async function validateWriteKey(writeKey: string): Promise<string | null> {
-  // Hardcoded for now; will replace with PostgreSQL lookup later
-  if (writeKey === "Basic abcdefg...") {
-    return "550e8400-e29b-41d4-a716-446655440000"; // Mock workspace ID
-  }
-  return null;
-}
+import { validateWriteKey } from "../lib/pg";
 
 export default async function publicAppsController(fastify: FastifyInstance) {
   fastify.post<{ Body: IdentifyDataType }>("/identify", async (request, reply) => {
