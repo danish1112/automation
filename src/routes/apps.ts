@@ -40,7 +40,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     };
 
     try {
-      if (true) {
+      if (process.env.USE_DIRECT_INSERT === "true") {
         await insertEventsDirect([message], true);
       } else {
         await sendToKafka("identify", message);
@@ -87,7 +87,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     };
 
     try {
-      if (true) {
+      if (process.env.USE_DIRECT_INSERT === "true") {
         await insertEventsDirect([message], true);
       } else {
         await sendToKafka("track", message);
