@@ -1,14 +1,10 @@
 import { FastifyInstance } from "fastify";
-import {
-  IdentifyData,
-  IdentifyDataType,
-  TrackData,
-  TrackDataType,
-  BaseMessageResponse,
-} from "../lib/types";
+import { IdentifyData, IdentifyDataType, TrackData, TrackDataType, BaseMessageResponse } from "../lib/types";
 import { validateWriteKey } from "../lib/pg";
 import { sendToKafka } from "../lib/kafka";
+import { insertEventsDirect } from "../lib/clickhouse";
 import { randomUUID } from "crypto";
+require("dotenv").config();
 
 export default async function publicAppsController(fastify: FastifyInstance) {
   fastify.post<{ Body: IdentifyDataType }>("/identify", async (request, reply) => {
@@ -29,21 +25,29 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       return reply.status(401).send({ message: "Invalid write key" });
     }
 
+    const now = new Date().toISOString().slice(0, 19).replace("T", " "); // e.g., "2025-03-05 20:02:18"
     const message = {
-      id: randomUUID(),
       workspace_id: workspaceId,
-      user_id: body.userId,
-      type: "identify",
-      event: null,
-      properties: body.traits || {},
-      timestamp: new Date().toISOString(),
+      message_raw: JSON.stringify({
+        user_id: body.userId,
+        type: "identify",
+        traits: body.traits || {},
+        timestamp: now,
+      }),
+      processing_time: now,  // Nullable, keeping full ISO 8601 is fine here
+      message_id: randomUUID(),
+      event_time: now,  // Must match DateTime format for partitioning
     };
 
     try {
-      await sendToKafka("identify", message);
+      if (true) {
+        await insertEventsDirect([message], true);
+      } else {
+        await sendToKafka("identify", message);
+      }
     } catch (err) {
       fastify.log.error(err);
-      return reply.status(500).send({ message: "Failed to publish event to Kafka" });
+      return reply.status(500).send({ message: "Failed to process event" });
     }
 
     return reply.status(204).send();
@@ -67,21 +71,30 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       return reply.status(401).send({ message: "Invalid write key" });
     }
 
+    const now = new Date().toISOString().slice(0, 19).replace("T", " "); // e.g., "2025-03-05 20:02:18"
     const message = {
-      id: randomUUID(),
       workspace_id: workspaceId,
-      user_id: body.userId,
-      type: "track",
-      event: body.event,
-      properties: body.properties || {},
-      timestamp: new Date().toISOString(),
+      message_raw: JSON.stringify({
+        user_id: body.userId,
+        type: "track",
+        event: body.event,
+        properties: body.properties || {},
+        timestamp: now,
+      }),
+      processing_time: now,
+      message_id: randomUUID(),
+      event_time: now,
     };
 
     try {
-      await sendToKafka("track", message);
+      if (true) {
+        await insertEventsDirect([message], true);
+      } else {
+        await sendToKafka("track", message);
+      }
     } catch (err) {
       fastify.log.error(err);
-      return reply.status(500).send({ message: "Failed to publish event to Kafka" });
+      return reply.status(500).send({ message: "Failed to process event" });
     }
 
     return reply.status(204).send();

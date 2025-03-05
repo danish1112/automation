@@ -49,7 +49,7 @@ services:
       - ./clickhouse-init.sql:/docker-entrypoint-initdb.d/init.sql  # Initialization script
     environment:
       CLICKHOUSE_USER: default
-      CLICKHOUSE_PASSWORD: ""  # No password, adjust if needed
+      CLICKHOUSE_PASSWORD: "danish"  # No password, adjust if needed
       CLICKHOUSE_DB: default
 
   kafka-connect:
