@@ -1,17 +1,17 @@
 {
-    "name": "clickhouse-sink",
-    "config": {
-      "connector.class": "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
-      "tasks.max": "1",
-      "topics": "identify,track",
-      "hostname": "clickhouse",
-      "port": "8123",
-      "database": "default",
-      "table": "user_events_v2",
-      "username": "default",
-      "password": "",
-      "key.converter": "org.apache.kafka.connect.json.JsonConverter",
-      "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-      "schemas.enable": "false"
-    }
+  "name": "clickhouse-sink",
+  "config": {
+    "connector.class": "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
+    "tasks.max": "1",
+    "topics": "identify,track",
+    "hostname": "clickhouse",
+    "port": "8123",
+    "database": "default",
+    "table": "user_events_v2",
+    "username": "default",
+    "password": "danish", 
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "schemas.enable": "false"
   }
+}

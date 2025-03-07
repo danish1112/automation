@@ -24,7 +24,7 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_NUM_PARTITIONS: 1
-    command: sh -c "sleep 60 && /etc/confluent/docker/run" # Increased to 60s
+    command: sh -c "sleep 60 && /etc/confluent/docker/run"
 
   postgres:
     image: postgres:latest
@@ -42,15 +42,14 @@ services:
     image: clickhouse/clickhouse-server:latest
     container_name: clickhouse
     ports:
-      - "8123:8123"  # HTTP interface
-      - "9000:9000"  # Native client
+      - "8123:8123"
+      - "9000:9000"
     volumes:
       - clickhouse-data:/var/lib/clickhouse
-      - ./clickhouse-init.sql:/docker-entrypoint-initdb.d/init.sql  # Initialization script
+      - ./clickhouse-init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       CLICKHOUSE_USER: default
-      CLICKHOUSE_PASSWORD: "danish"  # No password, adjust if needed
-      CLICKHOUSE_DB: default
+      CLICKHOUSE_PASSWORD: "danish"
 
   kafka-connect:
     image: confluentinc/cp-kafka-connect:latest
@@ -59,9 +58,10 @@ services:
       - kafka
       - clickhouse
     ports:
-      - "8083:8083"
+      - "8084:8083"  # Changed host port to 8084, container port remains 8083
     environment:
       CONNECT_BOOTSTRAP_SERVERS: kafka:9092
+      CONNECT_REST_PORT: 8083  # Internal port remains 8083
       CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
       CONNECT_GROUP_ID: connect-cluster
       CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
@@ -70,7 +70,13 @@ services:
       CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components
-    command: sh -c "confluent-hub install --no-prompt clickhouse/clickhouse-kafka-connect-sink:latest && /etc/confluent/docker/run"
+      CONNECT_LOG4J_LOGGERS: org.apache.kafka.connect=DEBUG
+    command: sh -c "sleep 180 && confluent-hub install --no-prompt clickhouse/clickhouse-kafka-connect-sink:latest && /etc/confluent/docker/run"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 volumes:
   pg-data:
