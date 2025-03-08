@@ -1,16 +1,19 @@
-import { Kafka, Producer } from "kafkajs";
+import { Kafka, Producer, Consumer } from "kafkajs";
+import { insertEventsDirect } from "./clickhouse";
+
 require("dotenv").config();
 
 const kafka = new Kafka({
-    clientId: "marketing-automation",
-    brokers: process.env.KAFKA_BROKERS?.split(",") || ["localhost:9092"],
-    logLevel: 4, // DEBUG level
-    retry: { initialRetryTime: 100, retries: 15, maxRetryTime: 60000 },
-    connectionTimeout: 15000,
-    requestTimeout: 30000,
-  });
+  clientId: "marketing-automation",
+  brokers: process.env.KAFKA_BROKERS?.split(",") || ["localhost:9092"],
+  logLevel: 4, // DEBUG level
+  retry: { initialRetryTime: 100, retries: 15, maxRetryTime: 60000 },
+  connectionTimeout: 15000,
+  requestTimeout: 30000,
+});
 
 const producer: Producer = kafka.producer();
+const consumer: Consumer = kafka.consumer({ groupId: "clickhouse-consumer-group" });
 
 export async function connectProducer() {
   try {
@@ -55,3 +58,32 @@ export async function disconnectProducer() {
     console.error("Failed to disconnect Kafka producer:", err);
   }
 }
+
+export async function startKafkaConsumer() {
+  try {
+    await consumer.connect();
+    await consumer.subscribe({ topics: ["identify", "track"], fromBeginning: true });
+
+    await consumer.run({
+      eachMessage: async ({ topic, partition, message }) => {
+        try {
+          const event = JSON.parse(message.value!.toString());
+          console.log(`Consumed event from ${topic}:`, event);
+          await insertEventsDirect([event], false); // Synchronous for reliability
+          console.log(`Inserted event into ClickHouse from ${topic}`);
+        } catch (error) {
+          console.error(`Error processing message from ${topic}:`, error);
+        }
+      },
+    });
+    console.log("Kafka consumer started");
+  } catch (err) {
+    console.error("Failed to start Kafka consumer:", err);
+    throw err;
+  }
+}
+
+// Start consumer in background
+startKafkaConsumer().catch(console.error);
+
+export { producer, consumer };

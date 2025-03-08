@@ -51,33 +51,6 @@ services:
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD: "danish"
 
-  kafka-connect:
-    image: confluentinc/cp-kafka-connect:latest
-    container_name: kafka-connect
-    depends_on:
-      - kafka
-      - clickhouse
-    ports:
-      - "8084:8083"  # Changed host port to 8084, container port remains 8083
-    environment:
-      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
-      CONNECT_REST_PORT: 8083  # Internal port remains 8083
-      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
-      CONNECT_GROUP_ID: connect-cluster
-      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
-      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
-      CONNECT_STATUS_STORAGE_TOPIC: connect-status
-      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components
-      CONNECT_LOG4J_LOGGERS: org.apache.kafka.connect=DEBUG
-    command: sh -c "sleep 180 && confluent-hub install --no-prompt clickhouse/clickhouse-kafka-connect-sink:latest && /etc/confluent/docker/run"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8083"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
 volumes:
   pg-data:
   clickhouse-data:
